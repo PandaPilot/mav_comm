@@ -105,16 +105,18 @@ inline void eigenRollPitchYawrateThrustFromMsg(
 
 inline void eigenOdometryFromMsg(const nav_msgs::Odometry& msg,
                                  EigenOdometry* odometry) {
-  Eigen::Matrix3d R; // Rotation matrix
+  //Eigen::Matrix3d R; // Rotation matrix
+  Eigen::Quaterniond orientation_W_B;
   assert(odometry != NULL);
   odometry->timestamp_ns = msg.header.stamp.toNSec();
   odometry->position_W = mav_msgs::vector3FromPointMsg(msg.pose.pose.position);
   odometry->orientation_W_B =
       mav_msgs::quaternionFromMsg(msg.pose.pose.orientation);
-  R = odometry->orientation_W_B.toRotationMatrix(); // convert a quaternion to a 3x3 rotation matrix
-  odometry->velocity_B = R*mav_msgs::vector3FromMsg(msg.twist.twist.linear);
+  orientation_W_B = mav_msgs::quaternionFromMsg(msg.pose.pose.orientation);
+  //R = odometry->orientation_W_B.toRotationMatrix(); // convert a quaternion to a 3x3 rotation matrix
+  odometry->velocity_B = orientation_W_B.inverse() * mav_msgs::vector3FromMsg(msg.twist.twist.linear);
   odometry->angular_velocity_B =
-      R*mav_msgs::vector3FromMsg(msg.twist.twist.angular);
+      orientation_W_B.inverse() * mav_msgs::vector3FromMsg(msg.twist.twist.angular);
   odometry->pose_covariance_ =
       Eigen::Map<const Eigen::Matrix<double, 6, 6>>(msg.pose.covariance.data());
   odometry->twist_covariance_ = Eigen::Map<const Eigen::Matrix<double, 6, 6>>(
